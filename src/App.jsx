@@ -1097,6 +1097,9 @@ export default function App() {
   const [activeDeck, setActiveDeck] = useState("de-zh");
   const [mode, setMode]             = useState("study");
   const [selectedLevels, setSelectedLevels] = useState(["A1","A2"]);
+  const [deckLevels, setDeckLevels] = useState(
+    () => Object.fromEntries(DECKS.map(d => [d.id, d.defaultLevels]))
+  );
 
   const [queue, setQueue]               = useState([]);
   const [idx, setIdx]                   = useState(0);
@@ -1120,18 +1123,30 @@ export default function App() {
   useEffect(() => {
     (async () => {
       try {
-        const [cr, sr, lr] = await Promise.all([
+        const [cr, sr, lr, pr] = await Promise.all([
           window.storage.get("lc-cards-v3"),
           window.storage.get("lc-stats-v1"),
           window.storage.get("lc-lang"),
+          window.storage.get("lc-prefs-v1"),
         ]);
         setCards(cr ? mergeSeeds(JSON.parse(cr.value)) : SEEDS);
         setStats(sr ? JSON.parse(sr.value) : {});
         if (lr) setUiLang(lr.value);
+        const visibleDecks = DECKS.filter(d => !d.hidden);
+        if (pr) {
+          const prefs = JSON.parse(pr.value);
+          const savedDeck = prefs.activeDeck;
+          const deck = (savedDeck && visibleDecks.find(d => d.id === savedDeck))
+            ? savedDeck : (visibleDecks[0]?.id ?? "de-zh");
+          setActiveDeck(deck);
+          if (prefs.deckLevels) {
+            setDeckLevels(prev => ({ ...prev, ...prefs.deckLevels }));
+            if (prefs.deckLevels[deck]?.length) setSelectedLevels(prefs.deckLevels[deck]);
+          }
+        } else {
+          setActiveDeck(prev => visibleDecks.find(d => d.id === prev) ? prev : (visibleDecks[0]?.id ?? prev));
+        }
       } catch { setCards(SEEDS); setStats({}); }
-      // If the previously active deck is now hidden, fall back to the first visible deck
-      const visibleDecks = DECKS.filter(d => !d.hidden);
-      setActiveDeck(prev => visibleDecks.find(d => d.id === prev) ? prev : (visibleDecks[0]?.id ?? prev));
       setLoaded(true);
     })();
   }, []);
@@ -1139,6 +1154,14 @@ export default function App() {
   useEffect(() => { if (loaded) window.storage.set("lc-cards-v3", JSON.stringify(cards)).catch(()=>{}); }, [cards, loaded]);
   useEffect(() => { if (loaded) window.storage.set("lc-stats-v1", JSON.stringify(stats)).catch(()=>{}); }, [stats, loaded]);
   useEffect(() => { if (loaded) window.storage.set("lc-lang", uiLang).catch(()=>{}); }, [uiLang, loaded]);
+  useEffect(() => {
+    if (!loaded) return;
+    setDeckLevels(prev => ({ ...prev, [activeDeck]: selectedLevels }));
+  }, [activeDeck, selectedLevels, loaded]);
+  useEffect(() => {
+    if (!loaded) return;
+    window.storage.set("lc-prefs-v1", JSON.stringify({ activeDeck, deckLevels })).catch(() => {});
+  }, [activeDeck, deckLevels, loaded]);
 
   const levelsKey = selectedLevels.slice().sort().join(",");
   useEffect(() => {
@@ -1150,8 +1173,9 @@ export default function App() {
 
   const switchDeck = (id) => {
     const d = DECKS.find(x => x.id === id);
-    setActiveDeck(id); setSelectedLevels(d.defaultLevels);
-    setManageFilter("all"); setForm(f => ({ ...f, level: d.defaultLevels[0] }));
+    const levels = deckLevels[id]?.length ? deckLevels[id] : d.defaultLevels;
+    setActiveDeck(id); setSelectedLevels(levels);
+    setManageFilter("all"); setForm(f => ({ ...f, level: levels[0] || d.defaultLevels[0] }));
   };
 
   const t          = UI[uiLang];
