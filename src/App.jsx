@@ -43,6 +43,7 @@ const UI = {
 };
 
 // ─── Config ───────────────────────────────────────────────────────────────────
+const VERSION = "1.4.0";
 const DECKS = [
   { id:"de-zh", flag:"🇩🇪", placeholder:"Hallo",  defaultLevels:["B1","B2","自学"] },
   { id:"es-zh", flag:"🇪🇸", placeholder:"Hola",   defaultLevels:["A1","A2","自学"], hidden:true },
@@ -743,6 +744,7 @@ const CSS = `
   .logo-block{display:flex;align-items:baseline;gap:8px;flex:1}
   .logo{font-family:'Noto Serif SC',serif;font-size:2.2rem;font-weight:300;color:var(--red);line-height:1}
   .app-title{font-size:.66rem;text-transform:uppercase;letter-spacing:.22em;color:var(--ink-muted)}
+  .app-ver{font-size:.55rem;letter-spacing:.08em;color:var(--border);margin-left:2px;align-self:flex-end;padding-bottom:1px}
   .header-right{display:flex;align-items:center;gap:8px}
   .lang-toggle{padding:5px 10px;background:transparent;border:1px solid var(--border);border-radius:var(--radius);font-family:'Cormorant Garamond',serif;font-size:.75rem;letter-spacing:.1em;cursor:pointer;color:var(--ink-muted);transition:all .18s;white-space:nowrap}
   .lang-toggle:hover{border-color:var(--ink-mid);color:var(--ink)}
@@ -1029,6 +1031,7 @@ export default function App() {
           <div className="logo-block">
             <span className="logo">語</span>
             <span className="app-title">词卡</span>
+            <span className="app-ver">v{VERSION}</span>
           </div>
           <div className="header-right">
             <button className="lang-toggle" onClick={() => setUiLang(l => l==="zh"?"es":"zh")}>
